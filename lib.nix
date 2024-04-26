@@ -15,9 +15,9 @@
 
     importsFromAttrs =
       {
-        importByDefault,
+        importByDefault ? true,
         modules,
-        imports,
+        imports ? { },
       }:
       let
         modulesToList = xs: flatten (mapAttrsToList (_: v: if isPath v then v else modulesToList v) xs);
