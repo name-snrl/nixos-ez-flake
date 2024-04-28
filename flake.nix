@@ -25,6 +25,7 @@
       imports = [
         ./lib.nix
         ./shell.nix
+        ./templates
       ];
     });
 }
