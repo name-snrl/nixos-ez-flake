@@ -13,12 +13,10 @@ attribute set.
   replacement. Also, if you're interested in this library, I recommend checking
   out its author's [configuration](https://github.com/figsoda/cfg).
 
-- **mkHosts** reads the specified directory and creates an attribute set whose
-  attributes are subdirectory names and whose values are configurations
-  generated using the `nixosSystem` function defined in the
+- **mkConfigurations** converts an attribute set from `mkModulesTree` into NixOS
+  configurations using the `nixosSystem` function defined in the
   [nixpkgs flake](https://github.com/NixOS/nixpkgs/blob/master/flake.nix). Each
-  subdirectory must contain the `default.nix` file, which is the entry point for
-  the machine configuration.
+  top-level attribute is a configuration entry point.
 
   Note:
 
@@ -176,7 +174,7 @@ nixos-ez-flake.mkModuleTree ./modules/profiles/home
 }
 ```
 
-### mkHosts
+### mkHosts (deprecated)
 
 Reads the specified directory (`entryPoint`) and converts its subdirectories
 into NixOS configurations using the `nixosSystem` function from the `nixpkgs`
@@ -235,6 +233,21 @@ mkHosts {
   t440s = nixpkgs.lib.nixosSystem { ... };
 }
 ```
+
+### mkConfigurations
+
+Similar to [mkHosts](#mkHosts), but creates NixOS configurations from an
+attribute set of paths, the top-level attributes will be converted to hostnames
+and all nested modules will be imported.
+
+- `configurations` is an attribute set of paths to be converted to
+  configurations\
+  Type: `attribute set`\
+  Required: `true`
+
+- `Inputs` is the same as in `mkHosts`.
+
+- `globalImports` is the same as in `mkHosts`.
 
 ### importsFromAttrs
 

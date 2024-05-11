@@ -50,5 +50,22 @@
           ] ++ globalImports;
         }
       );
+
+    mkConfigurations =
+      {
+        configurations,
+        inputs,
+        globalImports ? [ ],
+      }:
+      mapAttrs (
+        name: modules:
+        nixosSystem {
+          specialArgs = {
+            inherit inputs importsFromAttrs;
+          };
+          modules =
+            importsFromAttrs { inherit modules; } ++ [ { networking.hostName = name; } ] ++ globalImports;
+        }
+      ) configurations;
   };
 }
