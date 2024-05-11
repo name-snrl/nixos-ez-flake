@@ -20,12 +20,25 @@
         imports ? { },
       }:
       let
-        modulesToList = xs: flatten (mapAttrsToList (_: v: if isPath v then v else modulesToList v) xs);
+        modulesToList =
+          xs:
+          flatten (
+            mapAttrsToList (
+              _: value:
+              if isAttrs value then
+                modulesToList value
+              else if value == null then
+                { }
+              else
+                throwIfNot (types.path.check value) "importsFromAttrs: 'modules' must be an attribute set of paths"
+                  value
+            ) xs
+          );
         convertedImports = mapAttrsRecursive (
-          path: value:
-          throwIfNot (isBool value && hasAttrByPath path modules)
-            "Check the path ${concatStringsSep "." path}, the value should be of type boolean and exist in modules"
-            (if value then getAttrFromPath path modules else { })
+          setPath: value:
+          throwIfNot (isBool value && hasAttrByPath setPath modules)
+            "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute in 'imports' must be boolean and exist in modules"
+            (if value then getAttrFromPath setPath modules else null)
         ) imports;
       in
       modulesToList (
