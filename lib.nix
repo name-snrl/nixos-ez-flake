@@ -6,11 +6,11 @@
       mapAttrs' (
         name: type:
         if type == "directory" then
-          nameValuePair name (mkModuleTree /${dir}/${name})
+          nameValuePair name (mkModuleTree (dir + "/${name}"))
         else if name == "default.nix" then
-          nameValuePair "self" /${dir}/${name}
+          nameValuePair "self" (dir + "/${name}")
         else
-          nameValuePair (removeSuffix ".nix" name) /${dir}/${name}
+          nameValuePair (removeSuffix ".nix" name) (dir + "/${name}")
       ) (filterAttrs (name: type: type == "directory" || hasSuffix ".nix" name) (builtins.readDir dir));
 
     importsFromAttrs =
@@ -58,7 +58,7 @@
             inherit inputs importsFromAttrs;
           };
           modules = [
-            /${entryPoint}/${name}
+            (entryPoint + "/${name}")
             { networking.hostName = name; }
           ] ++ globalImports;
         }
