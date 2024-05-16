@@ -5,15 +5,15 @@
   ...
 }:
 {
-  imports =
-    [ ./hardware-configuration.nix ]
-    ++ importsFromAttrs {
-      modules = inputs.self.nixosModules;
-      #imports.profiles = {
-      #  nix = false;
-      #  aliases = false;
-      #};
+  imports = importsFromAttrs {
+    importByDefault = true;
+    modules = inputs.self.moduleTree.nixos;
+    imports = {
+      configurations = false;
+      #profiles.nix = false;
+      #profiles.aliases = false;
     };
+  };
 
   # There are some examples with host-specific configurations
 

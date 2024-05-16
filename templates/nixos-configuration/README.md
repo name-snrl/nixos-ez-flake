@@ -3,115 +3,79 @@
 Generated file structure:
 
 ```bash
-│   # flake based on flake-parts, you can import other flake-parts modules or
-│   # add inputs here
+│   # module based on flake-parts, by default it imports
+│   # all modules from ./modules/flake-parts
 ├── flake.nix
-├── hosts
-│   │   # flake-parts module that generates `nixosConfigurations` using
-│   │   # `nixos-ez-flake.mkHosts`, here you can add `globalImports`
-│   ├── default.nix
-│   │   # this directory name will be converted to a value for `networking.hostName`
-│   └── host-name
-│       │   # this file is the entry point for each host-configuration,
-│       │   # it must contain module imports and host-specific configuration
-│       └── default.nix
 │   # directory whose contents will be converted to attribute set of module paths
 └── modules
-    └── profiles
-        │   # some useful default settings for beginners, you free to remove them
-        ├── aliases.nix
-        └── nix.nix
+    ├── flake-parts
+    │   │   # default module generates `nixosConfigurations`
+    │   │   # and contains an example overlay
+    │   ├── default.nix
+    │   │   # this one makes it easier to work with `system`
+    │   └── perSystem.nix
+    └── nixos
+        ├── configurations
+        │   │   # this directory name will be converted to a
+        │   │   # value for `networking.hostName`
+        │   └── host-name
+        │       │   # these files are the entry point for each NixOS configuration,
+        │       │   # they will all be imported for a given host, these files are
+        │       │   # expected to contain host-specific configuration parameters
+        │       └── default.nix
+        └── profiles
+            │   # some useful default settings for beginners, you free to remove them
+            ├── aliases.nix
+            └── nix.nix
 ```
-
-______________________________________________________________________
 
 A few words about [flake-parts](https://github.com/hercules-ci/flake-parts).
 
 This library allows you to define flake outputs not only in the root flake file,
 but also to create modules to do so. This makes your system even more modular.
 It also take care of `system` stuff. More information can be found
-[here](https://flake.parts/).
-
-If you need to put any flake outputs right now, you can put them in the
-[root flake](/flake.nix) as follows:
-
-```nix
-  outputs =
-    inputs@{ nixos-ez-flake, flake-parts, ... }:
-    (flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        ./hosts
-      ];
-    })
-    // {
-      nixosModules = nixos-ez-flake.mkModuleTree ./modules;
-
-      # Here your outputs:
-
-      # Utilized by `nix build`
-      packages.x86_64-linux.hello = inputs.c-hello.packages.x86_64-linux.hello;
-
-      # Same idea as overlay but a list or attrset of them.
-      overlays = { exampleOverlay = inputs.self.overlay; };
-    };
-```
-
-Or create a new module and put your outputs in the `flake` attribute of that
-module:
-
-```nix
-{ lib, inputs, ... }:
-{
-  flake = {
-    # Utilized by `nix build`
-    packages.x86_64-linux.hello = inputs.c-hello.packages.x86_64-linux.hello;
-
-    # Same idea as overlay but a list or attrset of them.
-    overlays = { exampleOverlay = inputs.self.overlay; };
-  };
-}
-```
-
-Then import module in the [root flake](/flake.nix):
-
-```nix
-  outputs =
-    inputs@{ nixos-ez-flake, flake-parts, ... }:
-    (flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        ./hosts
-        # any other imports:
-        ./PATH/TO/YOUR_MODULE.nix
-      ];
-    })
-    // {
-      # Filesystem-based attribute set of module paths
-      nixosModules = nixos-ez-flake.mkModuleTree ./modules;
-    };
-```
-
-______________________________________________________________________
+[here](https://flake.parts/). I've added some simple usage examples see
+`./modules/flake-parts`.
 
 Now let's create your first configuration or migrate an existing one to
 **nixos-ez-flake**!
 
 # You already have a configuration
 
-- First, move all your modules to the `./modules` directory, and
-  `hardware-configuration.nix` to the `./hosts/host-name` directory.
+Let's start with one configuration.
+
+- Move the modules specific to this NixOS configuration to the
+  `./modules/nixos/configurations/host-name` directory. Now rename this
+  directory to the desired hostname. The directory name will be used to define
+  the `networking.hostName` option, so you should remove this option from your
+  configuration.
 - If `hardware-configuration.nix` was created a long time ago and does not
   contain the `nixpkgs.hostPlatform` option, I would recommend recreating it
   with the command:
   ```bash
-  nixos-generate-config --show-hardware-config > hosts/host-name/hardware-configuration.nix
+  nixos-generate-config --show-hardware-config > modules/nixos/configurations/host-name/hw-configuration.nix
   ```
-  or set this option explicitly in the `./hosts/host-name/default.nix` file.
-- Now rename the `./hosts/host-name` directory to match your host name. The
-  directory name will be used to define the `networking.hostName` option, so you
-  should remove this option from your configuration.
-- By default all modules will be imported, disable unwanted ones in
-  `./hosts/<hostName>/default.nix` using `imports` argument of
-  `importsFromAttrs`.
+- Remove all manual imports from modules, files in the host directory will be
+  imported automatically. About the management of shared modules below.
+- Move all modules and profiles shared by your configurations (`NixOS`,
+  `Home Manager`, etc) to the `./modules` directory.
+- The following expression will allow you to manage module imports in your
+  configurations based on the file structure:
+  ```nix
+  imports = importsFromAttrs {
+    importByDefault = true;
+    modules = inputs.self.moduleTree.nixos;
+    # or use `inputs.self.moduleTree.home-manager` for home-manager modules
+    imports = {
+      configurations = false;
+      #profiles.nix = false;
+      #profiles.aliases = false;
+    };
+  };
+  ```
+  As you may have noticed a similar expression is already present in the
+  `./modules/nixos/configurations/host-name/default.nix` file, you can use it
+  for your first configuration.
 
 Done! Try to switch or build your configuration:
 
@@ -122,6 +86,8 @@ nixos-rebuild switch --use-remote-sudo --flake
 ```bash
 nix build --no-link .#nixosConfigurations.<hostName>.config.system.build.toplevel 
 ```
+
+Move the rest of the configurations, creating directories for each by analogy.
 
 # This is your first NixOS configuration
 
@@ -143,7 +109,7 @@ booting into a live CD, I suggest doing it right now, in a familiar environment.
 So, let's write your first NixOS module, which will contain a set of key
 packages and services:
 
-- Create a new nix file in the `./modules` directory.
+- Create a new nix file in the `./modules/nixos/profiles` directory.
 - See the
   [configuration section](https://nixos.org/manual/nixos/unstable/#ch-configuration)
   in the NixOS manual to enable your favorite desktop environment.
@@ -190,6 +156,11 @@ This module will enable KDE Plasma 6 with SDDM and install programs such as
 `git` and `htop`, note that you must make changes to the git configuration (name
 and email). It will also install a small set of packages.
 
+Finally defint the host name by renaming the
+`./modules/nixos/configurations/host-name` directory, as mentioned above, the
+`networking.hostName` option will be set automatically when
+`nixosConfigurations` is generated.
+
 ## First installation
 
 First of all you need to
@@ -221,21 +192,18 @@ instead follow the steps below:
 - Now let's clone your configuration to your home directory:
   ```bash
   mkdir -p /mnt/home
-  mkdir -p -m 0700 /mnt/home/<username>
-  git clone <urlToYourRepo> /mnt/home/<username>/nixos-configuration
-  cd /mnt/home/<username>/nixos-configuration
+  mkdir -p -m 0700 /mnt/home/<userName>
+  git clone <urlToYourRepo> /mnt/home/<userName>/nixos-configuration
+  cd /mnt/home/<userName>/nixos-configuration
   ```
 - Generate a default configuration:
   ```bash
-  nixos-generate-config --root /mnt --dir modules
-  mv modules/hardware-configuration.nix hosts/<hostName>/
+  nixos-generate-config --root /mnt --dir modules/nixos/configurations/<hostName>
   git add -AN # flake commands only see files placed in the index
   ```
 - Now make changes to the generated `configuration.nix` file. Follow the advice
   in step 4 of the section
   [installing section](https://nixos.org/manual/nixos/unstable/#sec-installation-manual-installing).
-  **IMPORTANT**, remove `./hardware-configuration.nix` from imports in
-  `configuration.nix`.
 - Do the installation:
   ```bash
   # uncomment `--no-root-passwd`, if your configuration containes

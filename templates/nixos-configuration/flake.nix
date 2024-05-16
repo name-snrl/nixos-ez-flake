@@ -14,21 +14,10 @@
 
   outputs =
     inputs@{ nixos-ez-flake, flake-parts, ... }:
-    (flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "aarch64-darwin"
-        "x86_64-darwin"
-      ];
-      imports = [
-        ./hosts
-        # any other imports:
-        # ./shell.nix
-      ];
-    })
-    // {
+    flake-parts.lib.mkFlake { inherit inputs; } rec {
       # Filesystem-based attribute set of module paths
-      nixosModules = nixos-ez-flake.mkModuleTree ./modules;
+      flake.moduleTree = nixos-ez-flake.mkModuleTree ./modules;
+      # Import all flake-parts modules
+      imports = nixos-ez-flake.importsFromAttrs { modules = flake.moduleTree.flake-parts; };
     };
 }
