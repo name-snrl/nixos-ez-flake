@@ -2,8 +2,8 @@
 
 The `nixos-ez-flake` consists of a few simple functions to help you write a
 multi-host modular configuration with a file-structure based module import
-system. The main feature is the ability to enable and disable imports via
-attribute set.
+system. The main feature is the ability to enable and disable imports (specific
+files or entire directories) via attribute set.
 
 - **mkModuleTree** creates an attribute set that is a representation of the file
   structure, and the values are file paths. If you find this function not
