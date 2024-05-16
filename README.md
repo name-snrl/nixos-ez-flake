@@ -236,9 +236,9 @@ mkHosts {
 
 ### mkConfigurations
 
-Similar to [mkHosts](#mkHosts), but creates NixOS configurations from an
-attribute set of paths, the top-level attributes will be converted to hostnames
-and all nested modules will be imported.
+Similar to [mkHosts](#mkhosts-deprecated), but creates NixOS configurations from
+an attribute set of paths, the top-level attributes will be converted to
+hostnames and all nested modules will be imported.
 
 - `configurations` is an attribute set of paths to be converted to
   configurations\
@@ -310,3 +310,7 @@ importsFromAttrs {
 
 - [ ] add [Home Manager](https://github.com/nix-community/home-manager) in the
   template.
+- [ ] add an internal flag `__reverse` for `imports` to
+  [importsFromAttrs](#importsFromAttrs), which will change the global value of
+  `importByDefault` for a particular directory. This is necessary to import only
+  one file from a directory, enabling it instead of disabling all others.
