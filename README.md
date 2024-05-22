@@ -5,6 +5,8 @@ multi-host modular configuration with a file-structure based module import
 system. The main feature is the ability to enable and disable imports (specific
 files or entire directories) via attribute set.
 
+Core functions:
+
 - **mkModuleTree** creates an attribute set that is a representation of the file
   structure, and the values are file paths. If you find this function not
   powerful enough, I recommend you to check out
@@ -12,14 +14,22 @@ files or entire directories) via attribute set.
   do the same thing when using the `path loader`, but is a more powerful
   replacement. Also, if you're interested in this library, I recommend checking
   out its author's [configuration](https://github.com/figsoda/cfg).
+- **importsFromAttrs** is used to generate a list of paths from an attribute set
+  of paths (exactly what `mkModuleTree` returns). The returned list can be
+  passed as a value for
+  [imports](https://nixos.org/manual/nixos/unstable/#sec-importing-modules).
+  This function is passed to the `specialArgs` argument of the `nixosSystem`
+  function, this allows you to get it from arguments in any module in your
+  configuration.
+
+Optional, to convert the file structure to NixOS or Home Manager (WIP)
+configurations:
 
 - **mkConfigurations** converts an attribute set from `mkModulesTree` into NixOS
   configurations using the `nixosSystem` function defined in the
   [nixpkgs flake](https://github.com/NixOS/nixpkgs/blob/master/flake.nix). Each
-  top-level attribute is a configuration entry point.
-
+  top-level attribute is a configuration entry point.\
   Note:
-
   - The name of each subdirectory will be used to define the
     `networking.hostName` option.
   - The `nixosSystem` will be used from the nixpkgs of this flake, which means
@@ -35,14 +45,6 @@ files or entire directories) via attribute set.
     };
     ```
     Otherwise, your system will be built using nixpkgs pinned in this flake
-
-- **importsFromAttrs** is used to generate a list of paths from an attribute set
-  of paths (exactly what `mkModuleTree` returns). The returned list can be
-  passed as a value for
-  [imports](https://nixos.org/manual/nixos/unstable/#sec-importing-modules).
-  This function is passed to the `specialArgs` argument of the `nixosSystem`
-  function, this allows you to get it from arguments in any module in your
-  configuration.
 
 You can find an example in the [templates](/templates/nixos-configuration) or
 check out the
@@ -174,6 +176,109 @@ nixos-ez-flake.mkModuleTree ./modules/profiles/home
 }
 ```
 
+### importsFromAttrs
+
+Maps a filtering attribute set (`imports`) to `modules` and returns a list of
+paths.
+
+Arguments:
+
+- `importByDefault` whether all modules should be imported by default.\
+  Type:
+  `boolean`\
+  Required: `false`\
+  Default: `true`
+
+- `modules` attribute set to be filtered.\
+  Type: `attribute set`\
+  Required:
+  `true`
+
+- `imports` An attribute set that defines which modules should be imported.
+  **IMPORTANT**, the structure of this attribute set must match the structure of
+  the `modules`.\
+  Type: `attribute set`\
+  Required: `false`\
+  Default: `{ }`
+
+Example:
+
+```nix
+importsFromAttrs {
+  importByDefault = true;
+  modules = mkModuleTree ./modules/profiles/home; # same as in `mkModuleTree` example
+  imports = {
+    desktop.sway = false;
+    networking.self = false;
+    servers = false;
+  };
+}
+```
+
+```nix
+[
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/boot.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/fonts.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/default.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/xdg-portal.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/environment.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/battery.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/bluetooth.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/default.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/sound.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/locale.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/networking/tor.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/networking/wireless.nix
+  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/nix.nix
+]
+```
+
+### mkConfigurations
+
+Similar to [mkHosts](#mkhosts-deprecated), but creates NixOS configurations from
+an attribute set of paths, the top-level attributes will be converted to
+hostnames and all nested modules will be imported.
+
+- `configurations` is an attribute set of paths to be converted to
+  configurations (exactly what `mkModuleTree` returns).\
+  Type:
+  `attribute set`\
+  Required: `true`
+
+- `Inputs` is the same as in `mkHosts`.
+
+- `globalImports` is the same as in `mkHosts`.
+
+Example:
+
+```nix
+let
+  configurations = {
+    liveCD = {
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/liveCD/default.nix;
+    };
+    t14g1 = {
+      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/hw-config.nix;
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/default.nix;
+    };
+    t440s = {
+      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/hw-config.nix;
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/default.nix;
+    };
+  };
+in
+
+mkConfigurations { inherit inputs configurations; }
+```
+
+```nix
+{
+  liveCD = nixpkgs.lib.nixosSystem { ... };
+  t14g1 = nixpkgs.lib.nixosSystem { ... };
+  t440s = nixpkgs.lib.nixosSystem { ... };
+}
+```
+
 ### mkHosts (deprecated)
 
 Reads the specified directory (`entryPoint`) and converts its subdirectories
@@ -232,109 +337,6 @@ mkHosts {
   t14g1 = nixpkgs.lib.nixosSystem { ... };
   t440s = nixpkgs.lib.nixosSystem { ... };
 }
-```
-
-### mkConfigurations
-
-Similar to [mkHosts](#mkhosts-deprecated), but creates NixOS configurations from
-an attribute set of paths, the top-level attributes will be converted to
-hostnames and all nested modules will be imported.
-
-- `configurations` is an attribute set of paths to be converted to
-  configurations (exactly what `mkModuleTree` returns).\
-  Type:
-  `attribute set`\
-  Required: `true`
-
-- `Inputs` is the same as in `mkHosts`.
-
-- `globalImports` is the same as in `mkHosts`.
-
-Example:
-
-```nix
-let
-  configurations = {
-    liveCD = {
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/liveCD/default.nix;
-    };
-    t14g1 = {
-      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/hw-config.nix;
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/default.nix;
-    };
-    t440s = {
-      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/hw-config.nix;
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/default.nix;
-    };
-  };
-in
-
-mkConfigurations { inherit inputs configurations; }
-```
-
-```nix
-{
-  liveCD = nixpkgs.lib.nixosSystem { ... };
-  t14g1 = nixpkgs.lib.nixosSystem { ... };
-  t440s = nixpkgs.lib.nixosSystem { ... };
-}
-```
-
-### importsFromAttrs
-
-Maps a filtering attribute set (`imports`) to `modules` and returns a list of
-paths.
-
-Arguments:
-
-- `importByDefault` whether all modules should be imported by default.\
-  Type:
-  `boolean`\
-  Required: `false`\
-  Default: `true`
-
-- `modules` attribute set to be filtered.\
-  Type: `attribute set`\
-  Required:
-  `true`
-
-- `imports` An attribute set that defines which modules should be imported.
-  **IMPORTANT**, the structure of this attribute set must match the structure of
-  the `modules`.\
-  Type: `attribute set`\
-  Required: `false`\
-  Default: `{ }`
-
-Example:
-
-```nix
-importsFromAttrs {
-  importByDefault = true;
-  modules = mkModuleTree ./modules/profiles/home; # same as in `mkModuleTree` example
-  imports = {
-    desktop.sway = false;
-    networking.self = false;
-    servers = false;
-  };
-}
-```
-
-```nix
-[
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/boot.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/fonts.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/default.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/desktop/xdg-portal.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/environment.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/battery.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/bluetooth.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/default.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/hardware/sound.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/locale.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/networking/tor.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/networking/wireless.nix
-  /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/profiles/system/nix.nix
-]
 ```
 
 # TODO
