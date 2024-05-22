@@ -19,8 +19,8 @@ Core functions:
   passed as a value for
   [imports](https://nixos.org/manual/nixos/unstable/#sec-importing-modules).
   This function is passed to the `specialArgs` argument of the `nixosSystem`
-  function, this allows you to get it from arguments in any module in your
-  configuration.
+  function in [mkConfigurations](#mkConfigurations), this allows you to get it
+  from arguments in any module in your configuration.
 
 Optional, to convert the file structure to NixOS or Home Manager (WIP)
 configurations:
@@ -138,7 +138,7 @@ modules/profiles/system/
 ```
 
 ```nix
-nixos-ez-flake.mkModuleTree ./modules/profiles/home
+nixos-ez-flake.mkModuleTree ./modules/profiles/system
 ```
 
 ```nix
@@ -206,7 +206,7 @@ Example:
 ```nix
 importsFromAttrs {
   importByDefault = true;
-  modules = mkModuleTree ./modules/profiles/home; # same as in `mkModuleTree` example
+  modules = mkModuleTree ./modules/profiles/system; # same as in `mkModuleTree` example
   imports = {
     desktop.sway = false;
     networking.self = false;
