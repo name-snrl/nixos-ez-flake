@@ -241,13 +241,44 @@ an attribute set of paths, the top-level attributes will be converted to
 hostnames and all nested modules will be imported.
 
 - `configurations` is an attribute set of paths to be converted to
-  configurations\
-  Type: `attribute set`\
+  configurations (exactly what `mkModuleTree` returns).\
+  Type:
+  `attribute set`\
   Required: `true`
 
 - `Inputs` is the same as in `mkHosts`.
 
 - `globalImports` is the same as in `mkHosts`.
+
+Example:
+
+```nix
+let
+  configurations = {
+    liveCD = {
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/liveCD/default.nix;
+    };
+    t14g1 = {
+      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/hw-config.nix;
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/default.nix;
+    };
+    t440s = {
+      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/hw-config.nix;
+      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/default.nix;
+    };
+  };
+in
+
+mkConfigurations { inherit inputs configurations; }
+```
+
+```nix
+{
+  liveCD = nixpkgs.lib.nixosSystem { ... };
+  t14g1 = nixpkgs.lib.nixosSystem { ... };
+  t440s = nixpkgs.lib.nixosSystem { ... };
+}
+```
 
 ### importsFromAttrs
 
