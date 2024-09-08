@@ -69,41 +69,5 @@
         ) (applyReverse imports0);
       in
       collect (value: !(isAttrs value || value == null)) convertedImports;
-
-    mkHosts =
-      {
-        entryPoint,
-        inputs,
-        globalImports ? [ ],
-      }:
-      genAttrs (attrNames (filterAttrs (_: type: type == "directory") (builtins.readDir entryPoint))) (
-        name:
-        nixosSystem {
-          specialArgs = {
-            inherit inputs importsFromAttrs;
-          };
-          modules = [
-            (entryPoint + "/${name}")
-            { networking.hostName = name; }
-          ] ++ globalImports;
-        }
-      );
-
-    mkConfigurations =
-      {
-        configurations,
-        inputs,
-        globalImports ? [ ],
-      }:
-      mapAttrs (
-        name: modules:
-        nixosSystem {
-          specialArgs = {
-            inherit inputs importsFromAttrs;
-          };
-          modules =
-            importsFromAttrs { inherit modules; } ++ [ { networking.hostName = name; } ] ++ globalImports;
-        }
-      ) configurations;
   };
 }

@@ -6,11 +6,12 @@
     "x86_64-darwin"
   ];
   perSystem =
-    # what `inputs'` is https://flake.parts/module-arguments#inputs
+    # what are `inputs'`?
+    # https://flake.parts/module-arguments#inputs
     { pkgs, inputs', ... }:
     {
       #packages.default = inputs'.foo.packages.bar;
-      #
+
       #devShells.default =
       #  with pkgs;
       #  mkShellNoCC {

@@ -22,30 +22,6 @@ Core functions:
   function in [mkConfigurations](#mkConfigurations), this allows you to get it
   from arguments in any module in your configuration.
 
-Optional, to convert the file structure to NixOS or Home Manager (WIP)
-configurations:
-
-- **mkConfigurations** converts an attribute set from `mkModulesTree` into NixOS
-  configurations using the `nixosSystem` function defined in the
-  [nixpkgs flake](https://github.com/NixOS/nixpkgs/blob/master/flake.nix). Each
-  top-level attribute is a configuration entry point.\
-  Note:
-  - The name of each subdirectory will be used to define the
-    `networking.hostName` option.
-  - The `nixosSystem` will be used from the nixpkgs of this flake, which means
-    you must override the nixpkgs input of `nixos-ez-flake` in the nixpkgs of
-    your flake:
-    ```nix
-    inputs = {
-      nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-      nixos-ez-flake = {
-        url = "github:name-snrl/nixos-ez-flake";
-        inputs.nixpkgs.follows = "nixpkgs";
-      };
-    };
-    ```
-    Otherwise, your system will be built using nixpkgs pinned in this flake
-
 You can find an example in the [templates](/templates/nixos-configuration) or
 check out the
 [author's configuration](https://github.com/name-snrl/nixos-configuration).
@@ -239,116 +215,8 @@ importsFromAttrs {
 ]
 ```
 
-### mkConfigurations
-
-Similar to [mkHosts](#mkhosts-deprecated), but creates NixOS configurations from
-an attribute set of paths, the top-level attributes will be converted to
-hostnames and all nested modules will be imported.
-
-- `configurations` is an attribute set of paths to be converted to
-  configurations (exactly what `mkModuleTree` returns).\
-  Type:
-  `attribute set`\
-  Required: `true`
-
-- `Inputs` is the same as in `mkHosts`.
-
-- `globalImports` is the same as in `mkHosts`.
-
-Example:
-
-```nix
-let
-  configurations = {
-    liveCD = {
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/liveCD/default.nix;
-    };
-    t14g1 = {
-      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/hw-config.nix;
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t14g1/default.nix;
-    };
-    t440s = {
-      hw-config = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/hw-config.nix;
-      self = /nix/store/jhd491xja3gfkvd8y15q3lpf9l87z28z-source/modules/nixos/configurations/t440s/default.nix;
-    };
-  };
-in
-
-mkConfigurations { inherit inputs configurations; }
-```
-
-```nix
-{
-  liveCD = nixpkgs.lib.nixosSystem { ... };
-  t14g1 = nixpkgs.lib.nixosSystem { ... };
-  t440s = nixpkgs.lib.nixosSystem { ... };
-}
-```
-
-### mkHosts (deprecated)
-
-Reads the specified directory (`entryPoint`) and converts its subdirectories
-into NixOS configurations using the `nixosSystem` function from the `nixpkgs`
-flake. Each subdirectory will be passed to the `modules` argument of the
-`nixosSystem` function, which will cause only the `default.nix` file of that
-subdirectory to be imported. The names of each attribute in the returned
-attribute set are the names of the subdirectories. Subdirectory names are also
-used to define the `networking.hostName` option.
-
-Arguments:
-
-- `entryPoint` dirictory whose content will be converted.\
-  Type:
-  `path`\
-  Required: `true`
-
-- `inputs` flake inputs that will be passed to the `specialArgs` argument of the
-  `nixosSystem` function.\
-  Type: `any`\
-  Required: `true`
-
-- `globalImports` list of NixOS modules that will be imported in each
-  configuration.\
-  Type: `list`\
-  Required: `false`\
-  Default: `[ ]`
-
-Example:
-
-```bash
-> tree hosts/
-hosts/
-├── default.nix
-├── liveCD
-│   └── default.nix
-├── t14g1
-│   ├── default.nix
-│   └── hw-config.nix
-└── t440s
-    ├── default.nix
-    └── hw-config.nix
-```
-
-```nix
-inputs:
-mkHosts {
-  inherit inputs;
-  entryPoint = ./hosts;
-}
-```
-
-```nix
-{
-  liveCD = nixpkgs.lib.nixosSystem { ... };
-  t14g1 = nixpkgs.lib.nixosSystem { ... };
-  t440s = nixpkgs.lib.nixosSystem { ... };
-}
-```
-
 # TODO
 
-- [ ] add [Home Manager](https://github.com/nix-community/home-manager) in the
-  template.
 - [x] add an internal flag `_reverse` for `imports` to
   [importsFromAttrs](#importsFromAttrs), which will change the global value of
   `importByDefault` for a particular directory. This is necessary to import only
