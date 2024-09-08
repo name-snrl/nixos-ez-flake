@@ -194,7 +194,13 @@ Arguments:
   Required:
   `true`
 
-- `imports` An attribute set that defines which modules should be imported.
+- `imports` An attribute set that defines which modules should be imported. May
+  contain special values:
+
+  - `_reverse` must be a boolean, if `true` then all values in the current
+    attribute set will be reversed.
+  - `_reverseRecursive` same as the previous, but changes values recursively.
+
   **IMPORTANT**, the structure of this attribute set must match the structure of
   the `modules`.\
   Type: `attribute set`\
@@ -343,7 +349,7 @@ mkHosts {
 
 - [ ] add [Home Manager](https://github.com/nix-community/home-manager) in the
   template.
-- [ ] add an internal flag `__reverse` for `imports` to
+- [x] add an internal flag `_reverse` for `imports` to
   [importsFromAttrs](#importsFromAttrs), which will change the global value of
   `importByDefault` for a particular directory. This is necessary to import only
   one file from a directory, enabling it instead of disabling all others.

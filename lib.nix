@@ -20,30 +20,55 @@
         imports ? { },
       }:
       let
-        modulesToList =
-          xs:
-          flatten (
-            mapAttrsToList (
+        imports0 =
+          if importByDefault then
+            recursiveUpdate (mapAttrsRecursive (_: _: true) modules) imports
+          else
+            imports;
+
+        # function that handles `_reverse` and `_reverseRecursive` values
+        applyReverse =
+          inputAttrs:
+          let
+            specials = [
+              "_reverseRecursive"
+              "_reverse"
+            ];
+            attrs = mapAttrsRecursive (
+              setPath: value:
+              throwIfNot (isBool value)
+                "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute in 'imports' must be boolean"
+                (
+                  if inputAttrs ? _reverseRecursive then
+                    if intersectLists setPath specials == [ ] then !value else value
+                  else
+                    value
+                )
+            ) inputAttrs;
+            update =
               _: value:
               if isAttrs value then
-                modulesToList value
-              else if value == null then
-                { }
+                applyReverse value
+              else if inputAttrs ? _reverse then
+                !value
               else
-                throwIfNot (types.path.check value) "importsFromAttrs: 'modules' must be an attribute set of paths"
-                  value
-            ) xs
-          );
+                value;
+          in
+          throwIf (inputAttrs._reverse or false && inputAttrs._reverseRecursive or false)
+            "importsFromAttrs: 'imports' can't contain '_reverse' and '_reverseRecursive' at the same level"
+            removeAttrs
+            (mapAttrs update attrs)
+            specials;
+
+        # convert 'imports' to values from 'modules' or nulls depending on the value
         convertedImports = mapAttrsRecursive (
           setPath: value:
-          throwIfNot (isBool value && hasAttrByPath setPath modules)
-            "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute in 'imports' must be boolean and exist in modules"
+          throwIfNot (hasAttrByPath setPath modules)
+            "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute must exist in 'imports' and 'modules'"
             (if value then getAttrFromPath setPath modules else null)
-        ) imports;
+        ) (applyReverse imports0);
       in
-      modulesToList (
-        if importByDefault then recursiveUpdate modules convertedImports else convertedImports
-      );
+      collect (value: !(isAttrs value || value == null)) convertedImports;
 
     mkHosts =
       {
