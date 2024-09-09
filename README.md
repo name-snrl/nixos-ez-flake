@@ -65,6 +65,88 @@ git add -A &&
 git commit -m 'init'
 ```
 
+# Common use cases
+
+Suppose you have created a module tree from a directory with the following
+structure and placed it in the `moduleTree` variable in your flake's outputs:
+
+```
+├── flake-parts
+│   ├── configurations.nix
+│   ├── overlays.nix
+│   ├── perSystem.nix
+│   ├── shell.nix
+│   └── templates.nix
+├── home-manager
+│   └── profiles
+│       └── common
+│           ├── bat.nix
+│           ├── environment.nix
+│           ├── git.nix
+│           └── shell
+│               ├── fish.nix
+│               ├── nushell.nix
+│               ├── starship.nix
+│               └── zoxide.nix
+└── nixos
+    ├── configurations
+    │   ├── liveCD
+    │   │   └── default.nix
+    │   ├── t14g1
+    │   │   ├── default.nix
+    │   │   └── hw-config.nix
+    │   └── t440s
+    │       ├── default.nix
+    │       └── hw-config.nix
+    └── profiles
+        ├── auth.nix
+        ├── boot.nix
+        └── desktop
+            ├── console.nix
+            ├── default.nix
+            ├── fonts.nix
+            ├── input-method.nix
+            ├── kde.nix
+            ├── sddm.nix
+            └── sway
+                ├── default.nix
+                ├── display-control.nix
+                ├── qt.nix
+                ├── systemd-integration.nix
+                └── xdg-autostart.nix
+```
+
+## import all files from a specific directory
+
+```nix
+# import all from nixos/profiles/desktop
+{ inputs, ... }: {
+  imports = importsFromAttrs {
+    modules = inputs.self.moduleTree.nixos.profiles.desktop;
+  };
+}
+```
+
+## import all but one file
+
+```nix
+# this will import the following files:
+# - nixos/profiles/auth.nix
+# - nixos/profiles/boot.nix
+# - nixos/profiles/desktop/input-method.nix
+{ inputs, ... }: {
+  imports = importsFromAttrs {
+    modules = inputs.self.moduleTree.nixos.profiles;
+    imports = {
+      desktop = {
+        _reverse = true;
+        input-method = false;
+      };
+    };
+  };
+}
+```
+
 # Library Reference
 
 ### mkModuleTree
