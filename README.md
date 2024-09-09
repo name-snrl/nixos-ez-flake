@@ -1,11 +1,10 @@
 # Introduction
 
-The `nixos-ez-flake` consists of a few simple functions to help you write a
-multi-host modular configuration with a file-structure based module import
-system. The main feature is the ability to enable and disable imports (specific
-files or entire directories) via attribute set.
-
-Core functions:
+The `nixos-ez-flake` consists of a two functions to help you work with imports
+in modular configurations. Organize modules for home-manager, flake-parts,
+NixOS, or any other configuration based on the NixOS module system into a file
+structure, and then import them based on attrset with the same structure. Only
+two functions:
 
 - **mkModuleTree** creates an attribute set that is a representation of the file
   structure, and the values are file paths. If you find this function not
@@ -177,10 +176,15 @@ Arguments:
     attribute set will be reversed.
   - `_reverseRecursive` same as the previous, but changes values recursively.
 
-  **IMPORTANT**, the structure of this attribute set must match the structure of
-  the `modules`.\
+  This can be useful when you want to disable importing all but one file, and
+  `importByDefault` is set to `true` (this is the default). You don't want to
+  write `<name> = false` for all 99 files out of 100 in your directory, do
+  you?\
+  **IMPORTANT**, the structure of this attribute set must match the
+  structure of the `modules`.\
   Type: `attribute set`\
-  Required: `false`\
+  Required:
+  `false`\
   Default: `{ }`
 
 Example:
@@ -190,9 +194,9 @@ importsFromAttrs {
   importByDefault = true;
   modules = mkModuleTree ./modules/profiles/system; # same as in `mkModuleTree` example
   imports = {
-    desktop.sway = false;
-    networking.self = false;
-    servers = false;
+    desktop.sway = false; # disable import of the entire directory
+    networking.self = false; # disable import of the default.nix
+    servers.openssh = false; # diasable import of the openssh.nix
   };
 }
 ```
