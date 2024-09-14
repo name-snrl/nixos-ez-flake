@@ -20,10 +20,11 @@
         imports ? { },
       }:
       let
-        imports0 =
-          if importByDefault then
-            recursiveUpdate (mapAttrsRecursive (_: _: true) modules) imports
-          else
+        extendedImports =
+          throwIfNot (isBool importByDefault)
+            "importsFromAttrs: the value of the 'importByDefault' must be boolean"
+            recursiveUpdate
+            (mapAttrsRecursive (_: _: importByDefault) modules)
             imports;
 
         # function that handles `_reverse` and `_reverseRecursive` values
@@ -61,13 +62,15 @@
             specials;
 
         # convert 'imports' to values from 'modules' or nulls depending on the value
-        convertedImports = mapAttrsRecursive (
+        convertToModules = mapAttrsRecursive (
           setPath: value:
           throwIfNot (hasAttrByPath setPath modules)
             "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute must exist in 'imports' and 'modules'"
             (if value then getAttrFromPath setPath modules else null)
-        ) (applyReverse imports0);
+        );
       in
-      collect (value: !(isAttrs value || value == null)) convertedImports;
+      collect (value: !(isAttrs value || value == null)) (
+        convertToModules (applyReverse extendedImports)
+      );
   };
 }
