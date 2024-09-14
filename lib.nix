@@ -71,33 +71,33 @@
 
         # function that handles `_reverse` and `_reverseRecursive` values
         applyReverse =
-          inputAttrs:
+          imports:
           let
-            attrs = mapAttrsRecursive (
-              setPath: value:
-              throwIfNot (isBool value)
-                "importsFromAttrs: the value of the '${concatStringsSep "." setPath}' attribute in 'imports' must be boolean"
-                (
-                  if inputAttrs ? _reverseRecursive then
-                    if intersectLists setPath specials == [ ] then !value else value
-                  else
-                    value
-                )
-            ) inputAttrs;
+            updateRecursive =
+              path: value:
+              if !imports ? _reverseRecursive then
+                value
+              else if elem (tail path) specials then
+                value
+              else
+                !value;
             update =
               _: value:
               if isAttrs value then
                 applyReverse value
-              else if inputAttrs ? _reverse then
+              else if imports ? _reverse then
                 !value
               else
                 value;
           in
-          removeAttrs (mapAttrs update attrs) specials;
+          removeAttrs (pipe imports [
+            (mapAttrsRecursive updateRecursive)
+            (mapAttrs update)
+          ]) specials;
 
         # convert 'imports' to values from 'modules' or nulls depending on the value
         convertToModules = mapAttrsRecursive (
-          setPath: value: if value then getAttrFromPath setPath modules else null
+          path: value: if value then getAttrFromPath path modules else null
         );
       in
       pipe imports [
